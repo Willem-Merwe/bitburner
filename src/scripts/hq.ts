@@ -12,10 +12,10 @@
 
 import { NS } from '@ns'
 
-export const hack = 'hack.js'
-export const weaken = 'weaken.js'
-export const grow = 'grow.js'
-export const share = 'share.js'
+export const hack = 'scripts/hack.js'
+export const weaken = 'scripts/weaken.js'
+export const grow = 'scripts/grow.js'
+export const share = 'scripts/share.js'
 
 export async function main(ns: NS): Promise<void> {
     // Step 1
@@ -25,34 +25,36 @@ export async function main(ns: NS): Promise<void> {
     rootkit(ns, servers)
 
     // Step 3 + 4
-    const target = "foodnstuff"
+    const target = "taiyang-digital"
 
     // while (ns.getServerMaxMoney(target) > 0) {
-
-        attack(ns, target)
+        await attack(ns, target)
     // }
     // const targetServers = sortedServersByProfitability(ns, servers)
 
 }
 
-const attack = (ns: NS, target: string) => {
+const attack = async (ns: NS, target: string) => {
     const delay = 200
 
-    const moneyAmount = 5000
+    const moneyAmount = 1000000000
+    // ns.tprint("money amount", ns.getServerMoneyAvailable(target))
+    // const hackConstant = ns.hackAnalyze(target)
 
-    const hackThreads = Math.ceil(ns.hackAnalyzeThreads(target, moneyAmount))
+    const hackThreads = 1
+    ns.tprint("hackThreads", hackThreads)
     const hackSecurityIncrease = ns.hackAnalyzeSecurity(hackThreads, target)
     const weakenHackThreads = Math.ceil(hackSecurityIncrease/0.05)
-
-    // moneyAmount = threads*1.growthRate
+    ns.tprint("weakenHackThreads", weakenHackThreads)
 
     const growthRate = 1+(ns.getServerGrowth(target)/100)
 
-    const growthThreads = Math.ceil(moneyAmount/growthRate)
-    const growthSecurityIncrease = ns.growthAnalyzeSecurity(growthThreads, target)
-    const weakenGrowthThreads = Math.ceil(growthSecurityIncrease/0.05)
-
-    ns.tprint("Threads: \nHack - ", hackThreads, "\nWeaken - ", weakenHackThreads, "\nGrow - ", growthThreads, "\nWeaken - ", weakenGrowthThreads)
+    const growthThreads = Math.ceil(moneyAmount/growthRate) === 0 ? 1 : Math.ceil(moneyAmount/growthRate)
+    ns.tprint("growthThreads", growthThreads)
+    const growthSecurityIncrease = ns.growthAnalyzeSecurity(growthThreads, target) === 0 ? 1 : ns.growthAnalyzeSecurity(growthThreads, target)
+    ns.tprint("growthSecurityIncrease", growthSecurityIncrease)
+    const weakenGrowthThreads = Math.ceil(growthSecurityIncrease/0.05) === 0 ? 1 : Math.ceil(growthSecurityIncrease/0.05)
+    ns.tprint("weakenGrowthThreads", weakenGrowthThreads)
 
     const hacktime = ns.getHackTime(target)
     const weakentime = ns.getWeakenTime(target)
@@ -60,16 +62,22 @@ const attack = (ns: NS, target: string) => {
 
     const hackDelay = (weakentime-hacktime)-delay
     const hackWeakenDelay = 0
-    const growDelay = (weakentime-growtime)+200
-    const growWeakenDelay = 400
+    const growDelay = (weakentime-growtime)+delay
+    const growWeakenDelay = delay+delay
 
-    ns.tprint("Times: \nHack - ", hacktime, "\nWeaken - ", weakentime, "\nGrow - ", growtime)
+    ns.tprint("Server Half Max Before: ", ns.getServerMoneyAvailable(target))
+    ns.tprint("Security Before: ", ns.getServerSecurityLevel(target))
 
     // HWGW
-    ns.writePort(1, JSON.stringify({ host: 'home', action: hack, target, delay: hackDelay, threads: 1 }))
-    ns.writePort(1, JSON.stringify({ host: 'home', action: weaken, target, delay: hackWeakenDelay, threads: 1 }))
-    ns.writePort(1, JSON.stringify({ host: 'home', action: grow, target, delay: growDelay, threads: 1 }))
-    ns.writePort(1, JSON.stringify({ host: 'home', action: weaken, target, delay: growWeakenDelay, threads: 1 }))
+    ns.writePort(1, JSON.stringify({ host: 'home', action: hack, target, delay: hackDelay, threads: hackThreads }))
+    ns.writePort(1, JSON.stringify({ host: 'home', action: weaken, target, delay: hackWeakenDelay, threads: weakenHackThreads }))
+    ns.writePort(1, JSON.stringify({ host: 'home', action: grow, target, delay: growDelay, threads: growthThreads }))
+    ns.writePort(1, JSON.stringify({ host: 'home', action: weaken, target, delay: growWeakenDelay, threads: weakenGrowthThreads }))
+
+    await ns.sleep(weakentime+growWeakenDelay+100)
+
+    ns.tprint("Server Half Max After: ", ns.getServerMoneyAvailable(target))
+    ns.tprint("Security After: ", ns.getServerSecurityLevel(target))
 }
 
 // Returns string array of all the servers within the network.
@@ -109,18 +117,6 @@ const rootkit = (ns: NS, servers: string[]) => {
 //     if (ns.fileExists("SQLInject.exe")) { count++ }
 //     return count
 // }
-
-// loop forever {
-//     if security is not minimum {
-//         determine how many threads we need to lower security to the minimum
-//         find available ram for those threads
-//         copy the weaken script to the server(s) with RAM
-//         launch the weaken script(s)
-//         sleep until weaken is finished
-//     } else if money is not maximum {
-//         do the same thing, but with the grow script
-//     } else {
-//         do the same thing, but with the hack script
 
 // const sortedServersByProfitability = (ns: NS, servers: string[]): string[] => {
 //     const sortedServers = []
