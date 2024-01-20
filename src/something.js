@@ -278,7 +278,7 @@ export async function main(ns) {
                 }
                 catch {
                     HUDElement.insertAdjacentHTML('beforeEnd', `<ul class="MuiList-root jss26 MuiList-padding css-1ontqvh" 
-                    style="width:33%;  overflow-y: scroll; overflow-x: scroll;"><ul class="MuiList-root jss26 MuiList-padding css-1ontqvh" 
+                    style="width:50%;  overflow-y: scroll; overflow-x: scroll;"><ul class="MuiList-root jss26 MuiList-padding css-1ontqvh" 
                     style="width:100%;  overflow-y: scroll; overflow-x: scroll;" id="hook"></ul></ul>`)
                     const lista = doc.getElementById("hook");
                     lista.innerHTML = output;
