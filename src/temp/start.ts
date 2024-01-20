@@ -18,7 +18,7 @@ export async function main(ns: NS): Promise<void> {
     // ns.tprint(targets)
     // ns.tprint(servers)
     // ns.tprint(availableTargetServers)
-    
+
 
     // // eslint-disable-next-line no-constant-condition
     // while(true) {
@@ -28,7 +28,7 @@ export async function main(ns: NS): Promise<void> {
     //     availableResourcesRaw.forEach((resource) => {
     //         availableResources += resource.free
     //     })
-        
+
     //     targets.forEach((server) => {
     //         if( ns.getServerSecurityLevel(server) > ns.getServerMinSecurityLevel(server)) {
     //             dispatch(ns, weaken, availableTargetServers)
@@ -39,9 +39,21 @@ export async function main(ns: NS): Promise<void> {
     //     })
     // }
 
+    // ============ RAM COST CALCULATION ================ //
+    const hackCost = ns.getScriptRam(hack, 'home')
+    const growCost = ns.getScriptRam(grow, 'home')
+    const weakenCost = ns.getScriptRam(weaken, 'home')
 
-    
-    // List of ALL servers
+    const hackThreadMultiplier = 1
+    const growThreadMultiplier = 10
+    const weakenThreadMultiplier = 2
+
+    const batchCost = (hackCost * hackThreadMultiplier) + (growCost * growThreadMultiplier) + (weakenCost * weakenThreadMultiplier)
+    // =========== END RAM COST CALCULATION ================= //
+
+
+
+    // List of ALL serverslol
     const servers = getServers(ns)
 
     // List of Servers that have our Hacking scripts on them.
@@ -49,65 +61,97 @@ export async function main(ns: NS): Promise<void> {
 
 
 
-    const target = await ns.prompt("Select your target", {type: "text"}) as string
+    const target = ns.args[0] as string || await ns.prompt("Select your target", { type: "text" }) as string
 
-    prepServer(ns, target, hackNetwork)
-    attack(ns, target, hackNetwork)
-    
+    await prepServer(ns, target, hackNetwork)
+    ns.tprint("Target Prepped? Hopefully :D")
+    // attack(ns, target, hackNetwork)
+
 }
 
-const prepServer = (ns: NS, target: string, hackNetwork: string[]) => {
+const prepServer = async (ns: NS, target: string, hackNetwork: string[]) => {
+    ns.tprint("start prepServer")
     const minSecurity = ns.getServerMinSecurityLevel(target)
     const currentSecurity = ns.getServerSecurityLevel(target)
 
     const maxMoney = ns.getServerMaxMoney(target)
     const currentMoney = ns.getServerMoneyAvailable(target)
 
-    if(minSecurity < currentSecurity) {
-        // do weaken
-    }
+    if (minSecurity < currentSecurity) {
+        ns.tprint('Security min < current')
+        const securityDifference = currentSecurity - minSecurity
+        let weakenThreads = Math.ceil(securityDifference / 0.05)
+        const weakenCost = ns.getScriptRam(weaken, 'home')
+        const weakenTime = ns.getWeakenTime(target)
 
-    if (currentMoney < maxMoney) {
+        while (weakenThreads > 0) {
+            hackNetwork.forEach((server) => {
+                const freeRam = ns.getServerMaxRam(server) - ns.getServerUsedRam(server)
+                
+                if (freeRam >= weakenCost) {
+                    const availableThreads = Math.floor(freeRam / weakenCost)
+                    ns.tprint("freeRam: ", freeRam, " weakenCost: ", weakenCost, " availableThreads: ", availableThreads)    
+                    if (availableThreads > 0) {
+                        if (availableThreads < weakenThreads) {
+                            ns.tprint("Weaken #1")
+                            ns.exec(weaken, server, availableThreads, target, 0)
+                            weakenThreads -= availableThreads
+                        } else if (availableThreads >= weakenThreads) {
+                            ns.exec(weaken, server, weakenThreads, target, 0)
+                            ns.tprint("Weaken #2")
+                            weakenThreads = 0
+                        }
+                    }
+                }
+                // ns.tprint("\nTarget: " + target + "\nHackServer: " + server + "\nThreadCount: " + weakenThreads)
+            })
+            await ns.asleep(weakenTime)
+        }
+
+    } else if (currentMoney < maxMoney) {
         // do grow
+
     }
 }
 
 const attack = (ns: NS, target: string, hackNetwork: string[]) => {
 
-        // ============ RAM COST CALCULATION ================
-        const hackCost = ns.getScriptRam(hack, 'home')
-        const growCost = ns.getScriptRam(grow, 'home')
-        const weakenCost = ns.getScriptRam(weaken, 'home')
-    
-        const hackThreadMultiplier = 1
-        const growThreadMultiplier = 10
-        const weakenThreadMultiplier = 2
-    
-        const batchCost = hackCost + (growCost*10) + (weakenCost*2)        
-        // =========== DELAY CALCULATION =================
-        const baseDelay = 200
+    // ============ RAM COST CALCULATION ================ //
+    const hackCost = ns.getScriptRam(hack, 'home')
+    const growCost = ns.getScriptRam(grow, 'home')
+    const weakenCost = ns.getScriptRam(weaken, 'home')
 
-        const hackTime = ns.getHackTime(target)
-        const growTime = ns.getGrowTime(target)
-        const weakenTime = ns.getWeakenTime(target)
-    
-        const hackDelay = (weakenTime-hackTime)-baseDelay
-        const weakenHackDelay = 0
-        const growDelay = (weakenTime-growTime)+baseDelay
-        const weakenGrowDelay = baseDelay+baseDelay
-        // =================================
-    
-        hackNetwork.forEach((server) => {
-            const freeRam = ns.getServerMaxRam(server) - ns.getServerUsedRam(server)
-            const batchSets = Math.floor(freeRam/batchCost)
+    const hackThreadMultiplier = 1
+    const growThreadMultiplier = 10
+    const weakenThreadMultiplier = 2
 
-            if (batchSets > 0) {
-                ns.exec(hack, server, (batchSets*hackThreadMultiplier), target, hackDelay)
-                ns.exec(weaken, server, batchSets, target, weakenHackDelay)
-                ns.exec(grow, server, (batchSets*hackThreadMultiplier), target, growDelay)
-                ns.exec(weaken, server, batchSets, target, weakenGrowDelay)
-            }
-        })
+    const batchCost = (hackCost * hackThreadMultiplier) + (growCost * growThreadMultiplier) + (weakenCost * weakenThreadMultiplier)
+    // =========== END RAM COST CALCULATION ================= //
+
+    // =========== DELAY CALCULATION ================= //
+    const baseDelay = 200
+
+    const hackTime = ns.getHackTime(target)
+    const growTime = ns.getGrowTime(target)
+    const weakenTime = ns.getWeakenTime(target)
+
+    const hackDelay = (weakenTime - hackTime) - baseDelay
+    const weakenHackDelay = 0
+    const growDelay = (weakenTime - growTime) + baseDelay
+    const weakenGrowDelay = baseDelay + baseDelay
+    // =========================================== //
+
+    hackNetwork.forEach((server) => {
+        const freeRam = ns.getServerMaxRam(server) - ns.getServerUsedRam(server)
+        const batchSets = Math.floor(freeRam / batchCost)
+
+        if (batchSets > 0) {
+            ns.exec(hack, server, (batchSets * hackThreadMultiplier), target, hackDelay)
+            ns.exec(weaken, server, batchSets, target, weakenHackDelay)
+            ns.exec(grow, server, (batchSets * hackThreadMultiplier), target, growDelay)
+            ns.exec(weaken, server, batchSets, target, weakenGrowDelay)
+        }
+    })
 }
 
 // Requires a script that handles deployment
@@ -122,27 +166,27 @@ const dispatch = (ns: NS, action: string, availableServers: string[]) => {
 
     let totalRamAvailable = 0
     availableServers.forEach((server) => {
-        totalRamAvailable += ns.getServerMaxRam(server)-ns.getServerUsedRam(server)
+        totalRamAvailable += ns.getServerMaxRam(server) - ns.getServerUsedRam(server)
     })
 
-    switch(action) {
+    switch (action) {
         case hack: {
-            
+
             break
         }
-        
+
         case grow: {
 
             break
         }
-        
+
         case weaken: {
 
             break
         }
 
     }
-    
+
 }
 
 
@@ -154,7 +198,7 @@ interface AvailableResources {
 const getAvailableResources = (ns: NS, servers: string[]): AvailableResources[] => {
     const availableResources: AvailableResources[] = []
     servers.forEach((server) => {
-        availableResources.push({host: server, free: (ns.getServerMaxRam(server) - ns.getServerUsedRam(server))})
+        availableResources.push({ host: server, free: (ns.getServerMaxRam(server) - ns.getServerUsedRam(server)) })
     })
     return availableResources
 }
@@ -167,21 +211,21 @@ const getServers = (ns: NS) => {
 
 const getCurrentNumberOfHackablePorts = (ns: NS) => {
     let count = 0
-    if(ns.fileExists("FTPCrack.exe")) { count++ }
-    if(ns.fileExists("BruteSSH.exe")) { count++ }
-    if(ns.fileExists("relaySMTP.exe")) { count++ }
-    if(ns.fileExists("HTTPWorm.exe")) { count++ }
-    if(ns.fileExists("SQLInject.exe")) { count++ }
+    if (ns.fileExists("FTPCrack.exe")) { count++ }
+    if (ns.fileExists("BruteSSH.exe")) { count++ }
+    if (ns.fileExists("relaySMTP.exe")) { count++ }
+    if (ns.fileExists("HTTPWorm.exe")) { count++ }
+    if (ns.fileExists("SQLInject.exe")) { count++ }
 
     return count
 }
 
 const rootkit = (ns: NS, target: string) => {
-    if(ns.fileExists("FTPCrack.exe")) { ns.ftpcrack(target) }
-    if(ns.fileExists("BruteSSH.exe")) { ns.brutessh(target) }
-    if(ns.fileExists("relaySMTP.exe")) { ns.relaysmtp(target) }
-    if(ns.fileExists("HTTPWorm.exe")) { ns.httpworm(target) }
-    if(ns.fileExists("SQLInject.exe")) { ns.sqlinject(target) }
+    if (ns.fileExists("FTPCrack.exe")) { ns.ftpcrack(target) }
+    if (ns.fileExists("BruteSSH.exe")) { ns.brutessh(target) }
+    if (ns.fileExists("relaySMTP.exe")) { ns.relaysmtp(target) }
+    if (ns.fileExists("HTTPWorm.exe")) { ns.httpworm(target) }
+    if (ns.fileExists("SQLInject.exe")) { ns.sqlinject(target) }
     ns.nuke(target)
 }
 
@@ -199,7 +243,7 @@ const setupServers = (ns: NS, servers: string[], totalCost: number) => {
             }
         }
 
-        if ( serverMaxRam >= totalCost) {
+        if (serverMaxRam >= totalCost) {
             ns.scp([hack, grow, weaken], server, 'home')
             hackNetwork.push(server)
         }
