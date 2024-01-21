@@ -39,6 +39,8 @@ export async function main(ns: NS): Promise<void> {
     //     })
     // }
 
+
+    ns.tprint("Initializing start.ts...")
     // ============ RAM COST CALCULATION ================ //
     const hackCost = ns.getScriptRam(hack, 'home')
     const growCost = ns.getScriptRam(grow, 'home')
@@ -61,10 +63,25 @@ export async function main(ns: NS): Promise<void> {
 
 
 
-    const target = ns.args[0] as string || await ns.prompt("Select your target", { type: "text" }) as string
+    // const target = ns.args[0] as string || await ns.prompt("Select your target", { type: "text" }) as string
 
-    await prepServer(ns, target, hackNetwork)
-    ns.tprint("Target Prepped? Hopefully :D")
+    hackNetwork.forEach((server) => {
+        if (ns.hasRootAccess(server)) {
+            if (ns.getServerMaxMoney(server) > 0) {
+                try {
+                    prepServer(ns, server, hackNetwork)
+                    if (ns.getHackingLevel() >= ns.getServerRequiredHackingLevel(server)) {
+                        attack(ns, server, hackNetwork)
+                    }
+                } catch (error) {
+                    ns.tprint(error)
+                }
+
+            }
+        }
+
+    })
+
     // attack(ns, target, hackNetwork)
 
 }
@@ -84,34 +101,38 @@ const prepServer = async (ns: NS, target: string, hackNetwork: string[]) => {
         const weakenCost = ns.getScriptRam(weaken, 'home')
         const weakenTime = ns.getWeakenTime(target)
 
-        while (weakenThreads > 0) {
-            hackNetwork.forEach((server) => {
-                const freeRam = ns.getServerMaxRam(server) - ns.getServerUsedRam(server)
-                
+        // while (weakenThreads > 0) {
+        hackNetwork.forEach((server) => {
+            const freeRam = ns.getServerMaxRam(server) - ns.getServerUsedRam(server)
+            if (ns.getServerMaxRam(server) > 0) {
+
+
                 if (freeRam >= weakenCost) {
                     const availableThreads = Math.floor(freeRam / weakenCost)
-                    ns.tprint("freeRam: ", freeRam, " weakenCost: ", weakenCost, " availableThreads: ", availableThreads)    
+                    ns.tprint("freeRam: ", freeRam, " weakenCost: ", weakenCost, " availableThreads: ", availableThreads)
                     if (availableThreads > 0) {
                         if (availableThreads < weakenThreads) {
                             ns.tprint("Weaken #1")
                             ns.exec(weaken, server, availableThreads, target, 0)
                             weakenThreads -= availableThreads
-                        } else if (availableThreads >= weakenThreads) {
+                        } else if (availableThreads > weakenThreads && weakenThreads > 0) {
                             ns.exec(weaken, server, weakenThreads, target, 0)
                             ns.tprint("Weaken #2")
                             weakenThreads = 0
                         }
                     }
                 }
-                // ns.tprint("\nTarget: " + target + "\nHackServer: " + server + "\nThreadCount: " + weakenThreads)
-            })
-            await ns.asleep(weakenTime)
-        }
+            }
+            // ns.tprint("\nTarget: " + target + "\nHackServer: " + server + "\nThreadCount: " + weakenThreads)
+        })
+        await ns.sleep(weakenTime * 1.01)
+        // }
 
     } else if (currentMoney < maxMoney) {
         // do grow
 
     }
+
 }
 
 const attack = (ns: NS, target: string, hackNetwork: string[]) => {
@@ -142,15 +163,18 @@ const attack = (ns: NS, target: string, hackNetwork: string[]) => {
     // =========================================== //
 
     hackNetwork.forEach((server) => {
-        const freeRam = ns.getServerMaxRam(server) - ns.getServerUsedRam(server)
-        const batchSets = Math.floor(freeRam / batchCost)
+        if (ns.hasRootAccess(server)) {
+            const freeRam = ns.getServerMaxRam(server) - ns.getServerUsedRam(server)
+            const batchSets = Math.floor(freeRam / batchCost)
 
-        if (batchSets > 0) {
-            ns.exec(hack, server, (batchSets * hackThreadMultiplier), target, hackDelay)
-            ns.exec(weaken, server, batchSets, target, weakenHackDelay)
-            ns.exec(grow, server, (batchSets * hackThreadMultiplier), target, growDelay)
-            ns.exec(weaken, server, batchSets, target, weakenGrowDelay)
+            if (batchSets > 0) {
+                ns.exec(hack, server, (batchSets * hackThreadMultiplier), target, hackDelay)
+                ns.exec(weaken, server, batchSets, target, weakenHackDelay)
+                ns.exec(grow, server, (batchSets * hackThreadMultiplier), target, growDelay)
+                ns.exec(weaken, server, batchSets, target, weakenGrowDelay)
+            }
         }
+
     })
 }
 
@@ -162,46 +186,46 @@ const attack = (ns: NS, target: string, hackNetwork: string[]) => {
 // 10 parts to the grow scripts
 // 2 parts to the weaken scripts
 
-const dispatch = (ns: NS, action: string, availableServers: string[]) => {
+// const dispatch = (ns: NS, action: string, availableServers: string[]) => {
 
-    let totalRamAvailable = 0
-    availableServers.forEach((server) => {
-        totalRamAvailable += ns.getServerMaxRam(server) - ns.getServerUsedRam(server)
-    })
+//     let totalRamAvailable = 0
+//     availableServers.forEach((server) => {
+//         totalRamAvailable += ns.getServerMaxRam(server) - ns.getServerUsedRam(server)
+//     })
 
-    switch (action) {
-        case hack: {
+//     switch (action) {
+//         case hack: {
 
-            break
-        }
+//             break
+//         }
 
-        case grow: {
+//         case grow: {
 
-            break
-        }
+//             break
+//         }
 
-        case weaken: {
+//         case weaken: {
 
-            break
-        }
+//             break
+//         }
 
-    }
+//     }
 
-}
+// }
 
 
-interface AvailableResources {
-    host: string
-    free: number
-}
+// interface AvailableResources {
+//     host: string
+//     free: number
+// }
 
-const getAvailableResources = (ns: NS, servers: string[]): AvailableResources[] => {
-    const availableResources: AvailableResources[] = []
-    servers.forEach((server) => {
-        availableResources.push({ host: server, free: (ns.getServerMaxRam(server) - ns.getServerUsedRam(server)) })
-    })
-    return availableResources
-}
+// const getAvailableResources = (ns: NS, servers: string[]): AvailableResources[] => {
+//     const availableResources: AvailableResources[] = []
+//     servers.forEach((server) => {
+//         availableResources.push({ host: server, free: (ns.getServerMaxRam(server) - ns.getServerUsedRam(server)) })
+//     })
+//     return availableResources
+// }
 
 const getServers = (ns: NS) => {
     const foundServers = new Set([`home`]);
