@@ -5,41 +5,6 @@ export const weaken = 'temp/weaken.js'
 export const grow = 'temp/grow.js'
 
 export async function main(ns: NS): Promise<void> {
-    // const targets = 'foodnstuff'
-    // const servers = getServers(ns)
-    // const availableTargetServers = setupServers(ns, servers)
-
-    // if( ns.getServerSecurityLevel(server) > ns.getServerMinSecurityLevel(server)) {
-    //     dispatch(ns, weaken, availableTargetServers)
-    // } else if (ns.getServerMoneyAvailable(server) < ns.getServerMaxMoney(server)) {
-    //     dispatch(ns, grow, availableTargetServers)
-    // } 
-
-    // ns.tprint(targets)
-    // ns.tprint(servers)
-    // ns.tprint(availableTargetServers)
-
-
-    // // eslint-disable-next-line no-constant-condition
-    // while(true) {
-    //     const availableResourcesRaw = getAvailableResources(ns, targets)
-    //     let availableResources = 0
-
-    //     availableResourcesRaw.forEach((resource) => {
-    //         availableResources += resource.free
-    //     })
-
-    //     targets.forEach((server) => {
-    //         if( ns.getServerSecurityLevel(server) > ns.getServerMinSecurityLevel(server)) {
-    //             dispatch(ns, weaken, availableTargetServers)
-    //         } else if (ns.getServerMoneyAvailable(server) < ns.getServerMaxMoney(server)) {
-    //             dispatch(ns, grow, availableTargetServers)
-    //         } 
-
-    //     })
-    // }
-
-
     ns.tprint("Initializing start.ts...")
     // ============ RAM COST CALCULATION ================ //
     const hackCost = ns.getScriptRam(hack, 'home')
