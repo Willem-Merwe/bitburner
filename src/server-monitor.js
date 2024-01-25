@@ -35,6 +35,7 @@ export async function main(ns) {
 
     /*---------------------------------------------------*/
     /*---------------------Main Loop---------------------*/
+    // eslint-disable-next-line no-constant-condition
     while (true) {
         let output = "";
         let list = ["home"];

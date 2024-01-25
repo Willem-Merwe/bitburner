@@ -1,8 +1,8 @@
 import { NS } from '@ns'
 
-export const hack = 'temp/hack.js'
-export const weaken = 'temp/weaken.js'
-export const grow = 'temp/grow.js'
+export const hack = 'hack.js'
+export const weaken = 'weaken.js'
+export const grow = 'grow.js'
 
 export async function main(ns: NS): Promise<void> {
     ns.tprint("Initializing start.ts...")

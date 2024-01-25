@@ -1,5 +1,5 @@
 import { NS, Server } from '@ns'
-import { getCurrentNumberOfHackablePorts, rootTarget, setupTarget } from '/temp/libs/rootkit'
+import { getCurrentNumberOfHackablePorts, rootTarget, setupTarget } from '/libs/rootkit'
 
 export class NetworkManager {
     private servers: Server[]
@@ -51,12 +51,6 @@ export class NetworkManager {
     // Servers that could be used to Hack FROM
     public getResourceServers = (): Server[] => {
         this.update()
-        return this.servers.filter((server) => server.hasAdminRights && server.hasAdminRights && server.maxRam > 0)
+        return this.servers.filter((server) => server.hasAdminRights && server.maxRam > 0)
     }
 }
-
-export async function main(ns: NS): Promise<void> {
-    const networkManager = new NetworkManager(ns)
-    ns.tprint(networkManager.getResourceServers())
-  }
-  
